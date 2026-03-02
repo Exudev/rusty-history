@@ -26,19 +26,27 @@ impl HistoryParser for ZshParser {
                 continue;
             }
 
-            // Zsh extended history format: : timestamp:duration:command
+            // Zsh extended history format: ": timestamp:elapsed;command"
             if trimmed.starts_with(':') {
-                let parts: Vec<&str> = trimmed.splitn(4, ':').collect();
-                if parts.len() >= 4 {
-                    if let Ok(timestamp) = parts[1].parse::<i64>() {
-                        let command = parts[3];
-                        let dt = DateTime::from_timestamp(timestamp, 0)
-                            .unwrap_or_else(Utc::now);
-                        commands.push(CommandLog::new(
-                            dt,
-                            command.to_string(),
-                            cwd.clone(),
-                        ));
+                // Split into at most 3 parts on ':' → ["", " timestamp", "elapsed;command"]
+                let parts: Vec<&str> = trimmed.splitn(3, ':').collect();
+                if parts.len() == 3 {
+                    if let Ok(timestamp) = parts[1].trim().parse::<i64>() {
+                        // Command follows the ';' after the elapsed seconds
+                        let command = parts[2]
+                            .splitn(2, ';')
+                            .nth(1)
+                            .unwrap_or("")
+                            .trim();
+                        if !command.is_empty() {
+                            let dt = DateTime::from_timestamp(timestamp, 0)
+                                .unwrap_or_else(Utc::now);
+                            commands.push(CommandLog::new(
+                                dt,
+                                command.to_string(),
+                                cwd.clone(),
+                            ));
+                        }
                     }
                 }
             } else {
