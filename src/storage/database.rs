@@ -37,8 +37,15 @@ impl Database {
                 working_directory TEXT NOT NULL,
                 exit_code INTEGER,
                 session_id TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(timestamp, command_text)
             )",
+            [],
+        )?;
+
+        // Ensure the unique constraint exists on databases created before this migration
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_dedup ON commands(timestamp, command_text)",
             [],
         )?;
 
@@ -89,7 +96,7 @@ impl Database {
         let mut count = 0;
 
         for command in commands {
-            tx.execute(
+            let inserted = tx.execute(
                 "INSERT OR IGNORE INTO commands (timestamp, command_text, working_directory, exit_code, session_id)
                  VALUES (?1, ?2, ?3, ?4, ?5)",
                 params![
@@ -100,7 +107,7 @@ impl Database {
                     command.session_id,
                 ],
             )?;
-            count += 1;
+            count += inserted;
         }
 
         tx.commit()?;
