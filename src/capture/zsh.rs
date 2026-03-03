@@ -17,6 +17,15 @@ impl HistoryParser for ZshParser {
         let home = dirs::home_dir().unwrap_or_default();
         let cwd = home.to_string_lossy().to_string();
 
+        // Fallback timestamp for lines without an explicit timestamp.
+        // The file's mtime is a real historical date, unlike Utc::now() which
+        // would stamp every sync run with today's date.
+        let fallback_ts: DateTime<Utc> = std::fs::metadata(path)
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .map(DateTime::from)
+            .unwrap_or_else(Utc::now);
+
         for line in reader.lines() {
             let line = line?;
             let trimmed = line.trim();
@@ -50,9 +59,9 @@ impl HistoryParser for ZshParser {
                     }
                 }
             } else {
-                // Simple format without timestamp
+                // Simple format — no timestamp in file, use mtime as best-effort fallback
                 commands.push(CommandLog::new(
-                    Utc::now(),
+                    fallback_ts,
                     trimmed.to_string(),
                     cwd.clone(),
                 ));
