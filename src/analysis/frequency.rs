@@ -1,4 +1,4 @@
-use crate::commandLog::CommandLog;
+use crate::command_log::CommandLog;
 
 /// Represents the frequency of a command
 #[derive(Debug, Clone)]

@@ -1,7 +1,7 @@
 pub mod frequency;
 pub mod patterns;
 
-use crate::commandLog::CommandLog;
+use crate::command_log::CommandLog;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 

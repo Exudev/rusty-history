@@ -1,12 +1,12 @@
 mod analysis;
 mod capture;
-mod commandLog;
+mod command_log;
 mod config;
 mod display;
 mod storage;
 
 use anyhow::{Context, Result};
-use chrono::Datelike;
+use chrono::{TimeZone, Utc};
 use clap::{Parser, Subcommand};
 use indicatif::{ProgressBar, ProgressStyle};
 
@@ -126,25 +126,16 @@ fn show_wrapped(year: Option<i32>) -> Result<()> {
     let config = Config::load()?;
     let db = Database::open(config.database_path())?;
 
-    let all_commands = db.all_commands()?;
-
-    if all_commands.is_empty() {
-        println!("❌ No commands found in database. Run 'rusty-history sync' first.");
-        return Ok(());
-    }
-
-    // Filter by year if specified
-    let commands: Vec<_> = if let Some(year) = year {
-        all_commands
-            .into_iter()
-            .filter(|cmd| cmd.timestamp.year() == year)
-            .collect()
+    let commands = if let Some(y) = year {
+        let start = Utc.with_ymd_and_hms(y, 1, 1, 0, 0, 0).unwrap();
+        let end = Utc.with_ymd_and_hms(y, 12, 31, 23, 59, 59).unwrap();
+        db.commands_in_range(start, end)?
     } else {
-        all_commands
+        db.all_commands()?
     };
 
     if commands.is_empty() {
-        println!("❌ No commands found for the specified period.");
+        println!("❌ No commands found in database. Run 'rusty-history sync' first.");
         return Ok(());
     }
 

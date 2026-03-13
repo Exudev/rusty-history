@@ -1,4 +1,4 @@
-use crate::commandLog::CommandLog;
+use crate::command_log::CommandLog;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
